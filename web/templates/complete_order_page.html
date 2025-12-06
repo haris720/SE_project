@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Order</title>
+    <link rel="stylesheet" href="/static/style.css?v=4.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f7f8fa;
+        }
+        .complete-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .job-summary {
+            background: #f7f8fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid #e5e7eb;
+        }
+        .job-summary h3 {
+            margin-top: 0;
+            color: #222;
+            font-size: 18px;
+        }
+        .submission-details {
+            background: #e6f7ed;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #1DBF73;
+        }
+        .submission-details h4 {
+            margin-top: 0;
+            color: #1DBF73;
+        }
+        .review-form {
+            margin-top: 30px;
+        }
+        .form-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #e5e7eb;
+        }
+        .form-section h4 {
+            margin-top: 0;
+            color: #222;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #222;
+        }
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            background: white;
+            color: #222;
+        }
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            color: #222;
+        }
+        .rating-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .star-rating {
+            display: flex;
+            gap: 8px;
+            font-size: 32px;
+            cursor: pointer;
+        }
+        .star {
+            color: #cbd5e0;
+            transition: color 0.2s;
+        }
+        .star.active {
+            color: #f59e0b;
+        }
+        .star:hover {
+            color: #fbbf24;
+        }
+        .rating-label {
+            font-size: 18px;
+            color: #666;
+            margin-left: 10px;
+        }
+        .success-rate-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .success-option {
+            flex: 1;
+            min-width: 200px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            background: white;
+        }
+        .success-option:hover {
+            border-color: #1DBF73;
+            background: #f0fdf4;
+        }
+        .success-option.selected {
+            border-color: #1DBF73;
+            background: #e6f7ed;
+        }
+        .success-option input[type="radio"] {
+            display: none;
+        }
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .success-title {
+            font-weight: 600;
+            color: #222;
+            margin-bottom: 5px;
+        }
+        .success-desc {
+            font-size: 13px;
+            color: #666;
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .btn {
+            flex: 1;
+            padding: 15px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background: #1DBF73;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #19a863;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #222;
+        }
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #666;
+        }
+        .info-value {
+            color: #222;
+        }
+        .alert-warning {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+            color: #78350f;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-navbar">
+        <div class="navbar-container">
+            <a href="/client-dashboard" class="navbar-logo">Freeio</a>
+            <div class="navbar-menu">
+                <a href="/client-dashboard">Dashboard</a>
+                <a href="#" onclick="goBack(); return false;">Back to Jobs</a>
+            </div>
+            <div class="navbar-actions">
+                <span id="username" style="color: #fff; margin-right: 15px;"></span>
+                <button onclick="logout()" class="btn btn-secondary" style="padding: 8px 16px;">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="complete-container">
+        <div class="content-card">
+            <h1 style="margin-top: 0; color: #222; margin-bottom: 10px;">✅ Complete Order & Review</h1>
+            <p style="color: #666; margin-bottom: 30px;">
+                Review the freelancer's work and provide your feedback
+            </p>
+
+        <div class="alert-warning">
+            <strong>⚠️ Important:</strong> Once you complete this order, payment will be processed and the freelancer will receive their final rating. Please review everything carefully.
+        </div>
+
+        <div class="job-summary" id="jobSummary">
+            <h3>📋 Project Summary</h3>
+            <div class="info-row">
+                <span class="info-label">Project Title:</span>
+                <span class="info-value" id="jobTitle">Loading...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Freelancer:</span>
+                <span class="info-value" id="freelancerName">Loading...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Budget:</span>
+                <span class="info-value" id="jobBudget">Loading...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Timeline:</span>
+                <span class="info-value" id="jobTimeline">Loading...</span>
+            </div>
+        </div>
+
+        <div class="submission-details" id="submissionDetails">
+            <h4>📦 Freelancer's Submission</h4>
+            <div style="margin: 15px 0;">
+                <strong>Deliverable URL:</strong>
+                <a href="#" id="deliverableUrl" target="_blank" style="color: #3182ce; margin-left: 10px;">View Deliverables</a>
+            </div>
+            <div style="margin: 15px 0;">
+                <strong style="color: #222;">Submission Notes:</strong>
+                <p id="submissionNotes" style="margin-top: 8px; color: #666; line-height: 1.6; white-space: pre-wrap;"></p>
+            </div>
+        </div>
+
+        <form class="review-form" onsubmit="completeOrder(event)">
+            <!-- Rating Section -->
+            <div class="form-section">
+                <h4>⭐ Rate the Freelancer</h4>
+                <div class="form-group">
+                    <label>Overall Rating *</label>
+                    <div class="rating-container">
+                        <div class="star-rating" id="starRating">
+                            <span class="star" data-rating="1">★</span>
+                            <span class="star" data-rating="2">★</span>
+                            <span class="star" data-rating="3">★</span>
+                            <span class="star" data-rating="4">★</span>
+                            <span class="star" data-rating="5">★</span>
+                        </div>
+                        <span class="rating-label" id="ratingLabel">No rating</span>
+                    </div>
+                    <input type="hidden" id="rating" name="rating" required>
+                </div>
+            </div>
+
+            <!-- Review Section -->
+            <div class="form-section">
+                <h4>💬 Write a Review</h4>
+                <div class="form-group">
+                    <label for="review">Your Review *</label>
+                    <textarea id="review" rows="6" required 
+                        placeholder="Share your experience working with this freelancer...
+• Quality of work delivered
+• Communication and professionalism
+• Timeliness and reliability
+• Would you work with them again?"></textarea>
+                </div>
+            </div>
+
+            <!-- Success Rate Section -->
+            <div class="form-section">
+                <h4>🎯 Was the Project Successful?</h4>
+                <div class="success-rate-group">
+                    <label class="success-option" onclick="selectSuccess(true)">
+                        <input type="radio" name="success" value="true" required>
+                        <div class="success-icon">✅</div>
+                        <div class="success-title">Successful</div>
+                        <div class="success-desc">Met or exceeded expectations</div>
+                    </label>
+                    <label class="success-option" onclick="selectSuccess(false)">
+                        <input type="radio" name="success" value="false" required>
+                        <div class="success-icon">❌</div>
+                        <div class="success-title">Unsuccessful</div>
+                        <div class="success-desc">Did not meet requirements</div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Final Payment Section -->
+            <div class="form-section">
+                <h4>💰 Final Payment Amount</h4>
+                <div class="form-group">
+                    <label for="finalPrice">Final Amount to Pay ($) *</label>
+                    <input type="number" id="finalPrice" min="1" step="0.01" required 
+                        placeholder="Enter final payment amount">
+                    <small style="color: #718096;">Confirm the final amount to be paid to the freelancer</small>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-secondary" onclick="goBack()">
+                    ← Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    ✅ Complete Order & Submit Review
+                </button>
+            </div>
+        </form>
+        </div>
+    </div>
+
+    <script>
+        const userId = sessionStorage.getItem('userId');
+        const userName = sessionStorage.getItem('username');
+        
+        if (userName) { document.getElementById('username').textContent = userName; }
+        function logout() { sessionStorage.clear(); window.location.href = '/'; }
+        if (!userId) {
+            window.location.href = '/login';
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const jobId = urlParams.get('job_id');
+
+        if (!jobId) {
+            alert('Job ID not found');
+            window.location.href = '/client-dashboard';
+        }
+
+        let selectedRating = 0;
+
+        // Star rating functionality
+        const stars = document.querySelectorAll('.star');
+        const ratingLabel = document.getElementById('ratingLabel');
+        const ratingInput = document.getElementById('rating');
+
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                selectedRating = parseInt(this.dataset.rating);
+                updateStars();
+                ratingInput.value = selectedRating;
+            });
+        });
+
+        function updateStars() {
+            stars.forEach((star, index) => {
+                if (index < selectedRating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+
+            const labels = ['No rating', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
+            ratingLabel.textContent = labels[selectedRating];
+        }
+
+        function selectSuccess(isSuccessful) {
+            document.querySelectorAll('.success-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+
+        // Load job details
+        async function loadJobDetails() {
+            try {
+                console.log('Fetching job:', jobId, 'for user:', userId);
+                const response = await fetch(`http://localhost:3000/api/jobs/${jobId}`, {
+                    headers: { 'X-User-ID': userId }
+                });
+
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('Job result:', result);
+                
+                if (result.success && result.job) {
+                    const job = result.job;
+                    document.getElementById('jobTitle').textContent = job.title;
+                    document.getElementById('jobBudget').textContent = `$${job.estimated_cost || job.budget_min}`;
+                    document.getElementById('jobTimeline').textContent = `${job.estimated_days} days`;
+                    
+                    // Set default final price
+                    document.getElementById('finalPrice').value = job.estimated_cost || job.budget_min;
+
+                    // Load submission details
+                    if (job.submission_notes) {
+                        document.getElementById('submissionNotes').textContent = job.submission_notes;
+                    } else {
+                        document.getElementById('submissionNotes').textContent = 'No submission notes provided.';
+                    }
+                    
+                    if (job.deliverable_url) {
+                        document.getElementById('deliverableUrl').href = job.deliverable_url;
+                    } else {
+                        document.getElementById('deliverableUrl').textContent = 'No deliverable URL provided';
+                        document.getElementById('deliverableUrl').removeAttribute('href');
+                    }
+
+                    // Load freelancer name
+                    if (job.assigned_to) {
+                        loadFreelancerName(job.assigned_to);
+                    } else {
+                        document.getElementById('freelancerName').textContent = 'Not assigned';
+                    }
+                } else {
+                    console.error('Job load failed:', result);
+                    alert('Failed to load job details: ' + (result.message || 'Unknown error'));
+                    goBack();
+                }
+            } catch (error) {
+                console.error('Error loading job:', error);
+                alert('Error loading job details: ' + error.message);
+                goBack();
+            }
+        }
+
+        async function loadFreelancerName(freelancerId) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/users/${freelancerId}`);
+                const result = await response.json();
+                if (result.success && result.user) {
+                    document.getElementById('freelancerName').textContent = result.user.name;
+                }
+            } catch (error) {
+                console.error('Error loading freelancer:', error);
+            }
+        }
+
+        async function completeOrder(event) {
+            event.preventDefault();
+
+            const rating = parseInt(document.getElementById('rating').value);
+            const review = document.getElementById('review').value;
+            const successRadio = document.querySelector('input[name="success"]:checked');
+            const finalPrice = parseFloat(document.getElementById('finalPrice').value);
+
+            if (!rating || rating < 1 || rating > 5) {
+                alert('Please provide a rating (1-5 stars)');
+                return;
+            }
+
+            if (!successRadio) {
+                alert('Please indicate if the project was successful');
+                return;
+            }
+
+            const isSuccessful = successRadio.value === 'true';
+
+            const confirmComplete = confirm(
+                `Are you sure you want to complete this order?\n\n` +
+                `Rating: ${rating} stars\n` +
+                `Success: ${isSuccessful ? 'Yes' : 'No'}\n` +
+                `Final Payment: $${finalPrice}\n\n` +
+                `This action cannot be undone.`
+            );
+
+            if (!confirmComplete) return;
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/jobs/${jobId}/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': userId
+                    },
+                    body: JSON.stringify({
+                        rating: rating,
+                        review: review,
+                        success: isSuccessful,
+                        final_price: finalPrice
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('✅ Order completed successfully! The freelancer has been paid and rated.');
+                    window.location.href = '/client-dashboard';
+                } else {
+                    alert('❌ ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error completing order:', error);
+                alert('Error completing order. Please try again.');
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/client-dashboard';
+        }
+
+        loadJobDetails();
+    </script>
+</body>
+</html>

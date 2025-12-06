@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css?v=4.0">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+        <div class="top-navbar-container">
+            <a href="/" class="navbar-logo">
+                <span>🆓</span> Freeio
+            </a>
+            <div class="navbar-menu">
+                <a href="/">Home</a>
+                <a href="#">Browse Jobs</a>
+                <a href="#">Users</a>
+                <a href="#">Blog</a>
+                <a href="#">Pages</a>
+            </div>
+            <div class="navbar-actions">
+                <span style="color: white; margin-right: 15px;" id="username"></span>
+                <button class="navbar-btn navbar-btn-login" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Layout: Sidebar + Main Content -->
+    <div class="dashboard-layout">
+        <!-- Left Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar" id="avatar"></div>
+                <h3>Employer</h3>
+                <p id="sidebarEmail"></p>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="sidebar-nav-item active" onclick="switchTab('dashboard'); return false;" id="dashboardNav">
+                    <span class="icon">🏠</span> Dashboard
+                </a>
+                <a href="#" class="sidebar-nav-item" onclick="switchTab('estimate'); return false;" id="estimateNav">
+                    <span class="icon">🤖</span> Get AI Estimation
+                </a>
+                <a href="#" class="sidebar-nav-item" onclick="switchTab('post'); return false;" id="postNav">
+                    <span class="icon">➕</span> Post a Job
+                </a>
+                <a href="#" class="sidebar-nav-item" onclick="switchTab('myjobs'); return false;" id="myjobsNav">
+                    <span class="icon">📋</span> My Jobs
+                </a>
+                <a href="#" class="sidebar-nav-item" onclick="switchTab('freelancers'); return false;" id="freelancersNav">
+                    <span class="icon">👨‍💻</span> Find Freelancers
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            
+            <!-- Dashboard Overview Section -->
+            <div id="dashboardSection">
+                <div class="dashboard-header">
+                    <h1>Dashboard</h1>
+                    <p>Welcome to your employer dashboard</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Posted Projects</h3>
+                            <div class="number">0</div>
+                        </div>
+                        <div class="stat-icon">📝</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Completed Projects</h3>
+                            <div class="number">0</div>
+                        </div>
+                        <div class="stat-icon">✅</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Proposals</h3>
+                            <div class="number">0</div>
+                        </div>
+                        <div class="stat-icon">📬</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Reviews</h3>
+                            <div class="number">0</div>
+                        </div>
+                        <div class="stat-icon">⭐</div>
+                    </div>
+                </div>
+            </div>
+            
+        <!-- AI Estimation Section -->
+        <div id="estimateSection" style="display: none;">
+            <div class="content-card">
+            <h2>Get AI Cost & Time Estimation</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Our AI will analyze your project and provide accurate cost and timeline estimates
+            </p>
+
+            <form id="estimateForm" onsubmit="getAIEstimation(event)">
+                <div class="form-group">
+                    <label for="estTitle">Job Title</label>
+                    <input type="text" id="estTitle" required placeholder="e.g., Build a responsive website">
+                </div>
+
+                <div class="form-group">
+                    <label for="estDescription">Job Description</label>
+                    <textarea id="estDescription" required rows="6"
+                        placeholder="Describe your project requirements in detail..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="estComplexity">Project Complexity</label>
+                    <select id="estComplexity" required>
+                        <option value="Simple">Simple - Basic features</option>
+                        <option value="Moderate" selected>Moderate - Standard features</option>
+                        <option value="Complex">Complex - Advanced features</option>
+                        <option value="Very Complex">Very Complex - Enterprise level</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Required Skills</label>
+                    <div class="skills-input">
+                        <input type="text" id="estSkillInput" placeholder="Add a skill...">
+                        <button type="button" onclick="addEstimateSkill()">Add</button>
+                    </div>
+                    <div class="skills-list" id="estSkillsList"></div>
+                </div>
+
+                <button type="submit" class="btn">🤖 Get AI Estimation</button>
+            </form>
+
+            <div id="estimateResult"></div>
+            </div>
+        </div>
+
+        <!-- Post Job Section -->
+        <div id="postSection" style="display: none;">
+            <div class="content-card">
+            <h2>Post a New Job</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Enter job details and budget manually
+            </p>
+
+            <form id="jobForm" onsubmit="postJob(event)">
+                <div class="form-group">
+                    <label for="title">Job Title</label>
+                    <input type="text" id="title" required placeholder="e.g., Build a responsive website">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Job Description</label>
+                    <textarea id="description" required rows="6"
+                        placeholder="Describe your project requirements in detail..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="complexity">Project Complexity</label>
+                    <select id="complexity" required>
+                        <option value="Simple">Simple - Basic features</option>
+                        <option value="Moderate" selected>Moderate - Standard features</option>
+                        <option value="Complex">Complex - Advanced features</option>
+                        <option value="Very Complex">Very Complex - Enterprise level</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Required Skills</label>
+                    <div class="skills-input">
+                        <input type="text" id="skillInput" placeholder="Add a skill...">
+                        <button type="button" onclick="addSkill()">Add</button>
+                    </div>
+                    <div class="skills-list" id="skillsList"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="budget">Budget ($)</label>
+                    <input type="number" id="budget" required min="10" step="0.01" placeholder="e.g., 5000">
+                </div>
+
+                <div class="form-group">
+                    <label for="timeline">Timeline (days)</label>
+                    <input type="number" id="timeline" required min="1" placeholder="e.g., 30">
+                </div>
+
+                <button type="submit" class="btn">📤 Post Job</button>
+            </form>
+
+            <div id="jobResult"></div>
+            </div>
+        </div>
+
+        <!-- My Jobs Section -->
+        <div id="myjobsSection" style="display: none;">
+            <div class="content-card">
+            <h2>My Posted Jobs</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Manage your job postings and review applications
+            </p>
+
+            <div id="myJobsList"></div>
+            </div>
+        </div>
+
+        <!-- Find Freelancers Section -->
+        <div id="freelancersSection" style="display: none;">
+            <div class="content-card">
+            <h2>Find Freelancers</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 20px;">
+                Search freelancers by skill - sorted by trust score
+            </p>
+
+            <div style="max-width: 600px; margin: 0 auto 30px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="skillSearch" placeholder="Enter skill (e.g., Python, React, Design...)" 
+                           style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <button class="btn" onclick="searchFreelancers()" style="width: auto; padding: 12px 30px;">🔍 Search</button>
+                </div>
+            </div>
+
+            <div id="freelancersList"></div>
+            </div>
+        </div>
+        
+        </main> <!-- close dashboard-main -->
+    </div> <!-- close dashboard-layout -->
+
+    <!-- Modal for job details -->
+    <div id="jobModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+        <div style="background: white; max-width: 800px; margin: 50px auto; padding: 30px; border-radius: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="modalTitle"></h2>
+                <button onclick="closeModal()" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Close</button>
+            </div>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const userType = sessionStorage.getItem('userType');
+        const username = sessionStorage.getItem('username');
+        const userId = sessionStorage.getItem('userId');
+        
+        if (!userType || userType !== 'client') {
+            window.location.href = '/';
+        }
+
+        document.getElementById('username').textContent = username;
+        document.getElementById('avatar').textContent = username.charAt(0).toUpperCase();
+
+        let skills = [];
+        let estimateSkills = [];
+        let aiEstimation = null; // Store AI estimation results
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = '/';
+        }
+
+        function switchTab(tab) {
+            // Hide all sections
+            document.getElementById('dashboardSection').style.display = tab === 'dashboard' ? 'block' : 'none';
+            document.getElementById('estimateSection').style.display = tab === 'estimate' ? 'block' : 'none';
+            document.getElementById('postSection').style.display = tab === 'post' ? 'block' : 'none';
+            document.getElementById('myjobsSection').style.display = tab === 'myjobs' ? 'block' : 'none';
+            document.getElementById('freelancersSection').style.display = tab === 'freelancers' ? 'block' : 'none';
+
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar-nav-item').forEach(item => item.classList.remove('active'));
+            const activeNav = document.getElementById(tab + 'Nav');
+            if (activeNav) activeNav.classList.add('active');
+
+            // Load data for specific tabs
+            if (tab === 'myjobs') loadMyJobs();
+            if (tab === 'freelancers') loadFreelancers();
+        }
+
+        // Show dashboard section by default on page load
+        switchTab('dashboard');
+
+        function addSkill() {
+            const input = document.getElementById('skillInput');
+            const skill = input.value.trim();
+            
+            if (skill && !skills.includes(skill)) {
+                skills.push(skill);
+                renderSkills();
+                input.value = '';
+            }
+        }
+
+        function removeSkill(skill) {
+            skills = skills.filter(s => s !== skill);
+            renderSkills();
+        }
+
+        function renderSkills() {
+            const container = document.getElementById('skillsList');
+            container.innerHTML = skills.map(skill => `
+                <div class="skill-tag">
+                    <span>${skill}</span>
+                    <span class="remove" onclick="removeSkill('${skill}')">×</span>
+                </div>
+            `).join('');
+        }
+
+        function addEstimateSkill() {
+            const input = document.getElementById('estSkillInput');
+            const skill = input.value.trim();
+            
+            if (skill && !estimateSkills.includes(skill)) {
+                estimateSkills.push(skill);
+                renderEstimateSkills();
+                input.value = '';
+            }
+        }
+
+        function removeEstimateSkill(skill) {
+            estimateSkills = estimateSkills.filter(s => s !== skill);
+            renderEstimateSkills();
+        }
+
+        function renderEstimateSkills() {
+            const container = document.getElementById('estSkillsList');
+            container.innerHTML = estimateSkills.map(skill => `
+                <div class="skill-tag">
+                    <span>${skill}</span>
+                    <span class="remove" onclick="removeEstimateSkill('${skill}')">×</span>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('skillInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addSkill();
+            }
+        });
+
+        document.getElementById('estSkillInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addEstimateSkill();
+            }
+        });
+
+        async function getAIEstimation(event) {
+            event.preventDefault();
+            
+            const resultDiv = document.getElementById('estimateResult');
+            resultDiv.innerHTML = '<div class="loading">🤖 AI is analyzing your project...</div>';
+
+            const data = {
+                title: document.getElementById('estTitle').value,
+                description: document.getElementById('estDescription').value,
+                skills_required: estimateSkills,
+                complexity: document.getElementById('estComplexity').value,
+                budget_min: 0,
+                budget_max: 0
+            };
+
+            try {
+                const response = await fetch('http://localhost:3000/api/jobs/estimate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': userId
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    aiEstimation = result; // Store for later use
+                    
+                    resultDiv.innerHTML = `
+                        <div class="result-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-top: 30px;">
+                            <h3 style="color: white; text-align: center; margin-bottom: 20px;">🤖 AI Estimation Results</h3>
+                            <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 14px; opacity: 0.9;">Estimated Cost</div>
+                                        <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">$${result.estimated_cost.toLocaleString()}</div>
+                                        <div style="font-size: 12px; opacity: 0.8;">Range: $${result.min_cost.toLocaleString()} - $${result.max_cost.toLocaleString()}</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 14px; opacity: 0.9;">Estimated Timeline</div>
+                                        <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">${result.delivery_days} Days</div>
+                                        <div style="font-size: 12px; opacity: 0.8;">Typical delivery time</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <button onclick="useAIEstimation()" class="btn" style="background: white; color: #667eea; margin-right: 10px;">
+                                    ✅ Use These Values & Post Job
+                                </button>
+                                <button onclick="switchTab('post')" class="btn" style="background: rgba(255,255,255,0.2);">
+                                    ✏️ Enter Custom Values
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ ' + result.message + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        function useAIEstimation() {
+            if (!aiEstimation) {
+                alert('No AI estimation available');
+                return;
+            }
+
+            // Fill the post job form with AI estimation
+            document.getElementById('title').value = document.getElementById('estTitle').value;
+            document.getElementById('description').value = document.getElementById('estDescription').value;
+            document.getElementById('complexity').value = document.getElementById('estComplexity').value;
+            document.getElementById('budget').value = aiEstimation.estimated_cost;
+            document.getElementById('timeline').value = aiEstimation.delivery_days;
+            
+            // Copy skills
+            skills = [...estimateSkills];
+            renderSkills();
+
+            // Switch to post tab
+            switchTab('post');
+            
+            alert('✅ AI estimation values filled! You can adjust them before posting.');
+        }
+
+        async function postJob(event) {
+            event.preventDefault();
+            
+            const resultDiv = document.getElementById('jobResult');
+            resultDiv.innerHTML = '<div class="loading">📤 Posting your job...</div>';
+
+            const budget = parseFloat(document.getElementById('budget').value);
+            const timeline = parseInt(document.getElementById('timeline').value);
+
+            const data = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                complexity: document.getElementById('complexity').value,
+                skills_required: skills,
+                estimated_cost: budget,
+                estimated_days: timeline,
+                budget_min: budget * 0.8,
+                budget_max: budget * 1.2
+            };
+
+            try {
+                const response = await fetch('http://localhost:3000/api/jobs/manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': userId
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result-card" style="border-left-color: #28a745;">
+                            <h3>✅ Job Posted Successfully!</h3>
+                            <p style="margin-top: 15px; font-size: 16px;">Your job has been posted and freelancers can now apply.</p>
+                            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <p><strong>Budget:</strong> $${budget.toLocaleString()}</p>
+                                <p><strong>Timeline:</strong> ${timeline} days</p>
+                            </div>
+                            <button class="btn" onclick="switchTab('myjobs')" style="margin-top: 20px;">View My Jobs</button>
+                        </div>
+                    `;
+                    document.getElementById('jobForm').reset();
+                    skills = [];
+                    renderSkills();
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ ' + result.message + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        async function loadMyJobs() {
+            const container = document.getElementById('myJobsList');
+            container.innerHTML = '<div class="loading">📋 Loading your jobs...</div>';
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/jobs/client/${userId}`);
+                const result = await response.json();
+
+                if (result.success && result.jobs.length > 0) {
+                    container.innerHTML = result.jobs.map(job => {
+                        const workSubmitted = job.work_submitted || false;
+                        const submissionInfo = workSubmitted ? 
+                            `<p style="color: #28a745; font-weight: bold;">✅ Work submitted by freelancer</p>` :
+                            `<p style="color: #ffc107;">⏳ Waiting for work submission...</p>`;
+                        
+                        // Handle pending_acceptance status
+                        const statusText = job.status === 'pending_acceptance' ? 'PENDING ACCEPTANCE' : job.status.replace('_', ' ');
+                        const statusColor = job.status === 'completed' ? '#28a745' : 
+                                          job.status === 'in_progress' ? '#667eea' :
+                                          job.status === 'pending_acceptance' ? '#ff9800' : '#ffc107';
+                        
+                        return `
+                            <div class="result-card" style="margin-bottom: 20px;">
+                                <h3>${job.title}</h3>
+                                <p><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold; text-transform: uppercase;">${statusText}</span></p>
+                                <p><strong>Budget:</strong> $${job.estimated_cost.toLocaleString()}</p>
+                                <p><strong>Timeline:</strong> ${job.estimated_days} days</p>
+                                ${job.status === 'pending_acceptance' ? '<p style="color: #ff9800;">⏳ Waiting for freelancer to accept your request</p>' : ''}
+                                ${job.applications ? `<p><strong>Applications:</strong> ${job.applications.length}</p>` : ''}
+                                ${job.status === 'in_progress' ? submissionInfo : ''}
+                                ${job.submission_notes ? `<p><strong>Submission Notes:</strong> ${job.submission_notes}</p>` : ''}
+                                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                                    ${job.status === 'open' && job.applications && job.applications.length > 0 ? 
+                                        `<button class="btn" onclick="viewApplications('${job._id}', '${job.title}')">View Applications</button>` : ''}
+                                    ${job.status === 'in_progress' ? 
+                                        `<button class="btn ${workSubmitted ? '' : 'btn-disabled'}" 
+                                            onclick="completeJob('${job._id}', ${workSubmitted})"
+                                            ${workSubmitted ? '' : 'disabled'}
+                                            title="${workSubmitted ? 'Complete order and rate freelancer' : 'Waiting for freelancer to submit work'}">
+                                            ${workSubmitted ? '✅ Complete Order' : '⏳ Waiting for Work'}
+                                        </button>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No jobs posted yet</p>';
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="error">❌ Failed to load jobs</div>';
+            }
+        }
+
+        async function viewApplications(jobId, jobTitle) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/jobs/client/${userId}`);
+                const result = await response.json();
+                const job = result.jobs.find(j => j._id === jobId);
+
+                if (job && job.applications && job.applications.length > 0) {
+                    let applicationsHTML = '<h3 style="color: #222; margin-bottom: 25px; font-size: 20px;">Applications for this job</h3>';
+                    for (let app of job.applications) {
+                        // Get freelancer profile
+                        const profileResp = await fetch(`http://localhost:3000/api/freelancer/profile/${app.freelancer_id}`);
+                        const profileData = await profileResp.json();
+                        const profile = profileData.profile || {};
+
+                        // Get trust score
+                        const trustResp = await fetch(`http://localhost:3000/api/freelancer/trust-score/${app.freelancer_id}`);
+                        const trustData = await trustResp.json();
+                        const trust = trustData.data || {};
+
+                        const trustColor = trust.trust_score >= 80 ? '#1DBF73' : trust.trust_score >= 65 ? '#FFB800' : '#FF6B6B';
+                        const statusColor = app.status === 'accepted' ? '#1DBF73' : app.status === 'rejected' ? '#FF6B6B' : '#666';
+
+                        // Show Accept/Reject buttons only for pending applications
+                        const actionButtons = app.status === 'pending' ? `
+                            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                <button class="btn" onclick="handleApplication('${jobId}', '${app.freelancer_id}', 'accept')" style="flex: 1;">✅ Accept</button>
+                                <button class="btn btn-danger" onclick="handleApplication('${jobId}', '${app.freelancer_id}', 'reject')" style="flex: 1;">❌ Reject</button>
+                            </div>
+                        ` : `<div style="margin-top: 15px; padding: 10px; background: ${statusColor === '#1DBF73' ? '#e6f7ed' : '#ffe6e6'}; border-radius: 8px; text-align: center;"><strong style="color: ${statusColor}; text-transform: uppercase;">${app.status}</strong></div>`;
+
+                        applicationsHTML += `
+                            <div class="result-card" style="margin: 20px 0;">
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 15px;">
+                                    <div>
+                                        <div style="color: #666; font-size: 13px; margin-bottom: 5px;">Hourly Rate</div>
+                                        <div style="color: #1DBF73; font-weight: 700; font-size: 18px;">$${profile.hourly_rate || 'N/A'}/hr</div>
+                                    </div>
+                                    <div>
+                                        <div style="color: #666; font-size: 13px; margin-bottom: 5px;">Trust Score</div>
+                                        <div style="color: ${trustColor}; font-weight: 700; font-size: 18px;">${trust.trust_score || 'N/A'}/100</div>
+                                    </div>
+                                    <div>
+                                        <div style="color: #666; font-size: 13px; margin-bottom: 5px;">Completed Jobs</div>
+                                        <div style="color: #222; font-weight: 600;">${trust.completed_jobs || 0}</div>
+                                    </div>
+                                    <div>
+                                        <div style="color: #666; font-size: 13px; margin-bottom: 5px;">Rating</div>
+                                        <div style="font-size: 18px;">${'⭐'.repeat(Math.round(trust.rating || 0))}</div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+                                    <div style="color: #666; font-size: 13px; margin-bottom: 8px;">Cover Letter & Proposal</div>
+                                    <p style="color: #222; line-height: 1.7; margin: 0;">${app.proposal || 'No proposal provided'}</p>
+                                    ${app.proposed_budget ? `<p style="margin-top: 10px;"><strong style="color: #666;">Proposed Budget:</strong> <span style="color: #1DBF73; font-weight: 700;">$${app.proposed_budget}</span></p>` : ''}
+                                    ${app.proposed_timeline ? `<p style="margin-top: 5px;"><strong style="color: #666;">Proposed Timeline:</strong> <span style="color: #222; font-weight: 600;">${app.proposed_timeline} days</span></p>` : ''}
+                                </div>
+                                ${actionButtons}
+                            </div>
+                        `;
+                    }
+
+                    document.getElementById('modalTitle').textContent = jobTitle;
+                    document.getElementById('modalContent').innerHTML = applicationsHTML;
+                    document.getElementById('jobModal').style.display = 'block';
+                } else {
+                    alert('No applications found for this job');
+                }
+            } catch (error) {
+                console.error('Error loading applications:', error);
+                alert('❌ Failed to load applications');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('jobModal').style.display = 'none';
+        }
+
+        async function handleApplication(jobId, freelancerId, action) {
+            const confirmMsg = action === 'accept' ? 
+                'Are you sure you want to accept this application and hire the freelancer?' :
+                'Are you sure you want to reject this application?';
+                
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/jobs/application/${jobId}/${freelancerId}/${action}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('✅ ' + result.message);
+                    closeModal();
+                    loadMyJobs();
+                } else {
+                    alert('❌ ' + result.message);
+                }
+            } catch (error) {
+                alert('❌ Failed to update application');
+            }
+        }
+
+        async function assignJob(jobId, freelancerId) {
+            if (!confirm('Are you sure you want to hire this freelancer?')) return;
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/jobs/assign/${jobId}/${freelancerId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('✅ Job assigned successfully!');
+                    closeModal();
+                    loadMyJobs();
+                } else {
+                    alert('❌ ' + result.message);
+                }
+            } catch (error) {
+                alert('❌ Failed to assign job');
+            }
+        }
+
+        async function completeJob(jobId, workSubmitted) {
+            // Check if freelancer has submitted work first
+            if (!workSubmitted) {
+                alert('⚠️ Cannot complete order: The freelancer has not submitted their work yet. Please wait for work submission.');
+                return;
+            }
+
+            // Redirect to complete order page
+            window.location.href = `/complete-order?job_id=${jobId}`;
+        }
+
+        async function loadFreelancers() {
+            searchFreelancers();
+        }
+
+        async function searchFreelancers() {
+            const container = document.getElementById('freelancersList');
+            const skill = document.getElementById('skillSearch').value.trim();
+            
+            container.innerHTML = '<div class="loading">👨‍💻 Searching freelancers...</div>';
+
+            try {
+                const url = skill ? 
+                    `http://localhost:3000/api/freelancers/search?skill=${encodeURIComponent(skill)}` :
+                    'http://localhost:3000/api/freelancers/search';
+                    
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success && result.freelancers.length > 0) {
+                    container.innerHTML = result.freelancers.map(freelancer => {
+                        const trustColor = freelancer.trust_score >= 80 ? '#28a745' : 
+                                          freelancer.trust_score >= 65 ? '#17a2b8' : 
+                                          freelancer.trust_score >= 50 ? '#ffc107' : '#dc3545';
+                        
+                        return `
+                            <div class="result-card" style="margin-bottom: 20px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <h3 style="margin-bottom: 10px;">Freelancer ID: ${freelancer.user_id.substring(0, 8)}...</h3>
+                                        <p><strong>Skills:</strong> ${freelancer.skills.join(', ')}</p>
+                                        <p><strong>Bio:</strong> ${freelancer.bio || 'No bio provided'}</p>
+                                        <p><strong>Hourly Rate:</strong> $${freelancer.hourly_rate}/hr</p>
+                                        <p><strong>Completed Jobs:</strong> ${freelancer.completed_jobs}</p>
+                                        <p><strong>Average Rating:</strong> ${'⭐'.repeat(Math.round(freelancer.average_rating))} (${freelancer.average_rating.toFixed(1)}/5)</p>
+                                        <p><strong>Success Rate:</strong> ${(freelancer.success_rate * 100).toFixed(0)}%</p>
+                                    </div>
+                                    <div style="text-align: center; padding: 0 20px;">
+                                        <div style="font-size: 48px; font-weight: bold; color: ${trustColor};">
+                                            ${freelancer.trust_score}
+                                        </div>
+                                        <div style="color: #666; font-size: 14px;">Trust Score</div>
+                                    </div>
+                                </div>
+                                <button class="btn" onclick="requestFreelancer('${freelancer.user_id}')" 
+                                        style="margin-top: 15px; width: auto; padding: 10px 20px;">
+                                    📤 Request This Freelancer
+                                </button>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `<p style="text-align: center; color: #666;">
+                        ${skill ? `No freelancers found with skill "${skill}"` : 'No freelancers available yet'}
+                    </p>`;
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="error">❌ Failed to search freelancers</div>';
+            }
+        }
+
+        async function requestFreelancer(freelancerId) {
+            // Redirect to request freelancer page
+            window.location.href = `/request-freelancer?freelancer_id=${freelancerId}`;
+        }
+    </script>
+</body>
+</html>

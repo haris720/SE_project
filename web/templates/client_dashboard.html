@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Dashboard - AI Evaluation System</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container dashboard">
+        <div class="header">
+            <h1>💼 Client Dashboard</h1>
+            <div class="user-info">
+                <div class="avatar" id="avatar"></div>
+                <span id="username"></span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div style="display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #e0e0e0;">
+            <button type="button" class="tab-btn active" onclick="switchTab('project')" id="projectTab">
+                📋 Post a Job
+            </button>
+            <button type="button" class="tab-btn" onclick="switchTab('freelancer')" id="freelancerTab">
+                👨‍💻 Check Freelancer
+            </button>
+        </div>
+
+        <!-- Project Estimation Section -->
+        <div id="projectSection">
+            <h2>Project Cost & Time Estimation</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Get AI-powered budget and timeline estimates for your project
+            </p>
+
+            <form id="costEstimationForm" onsubmit="estimateCost(event)">
+            <div class="form-group">
+                <label for="description">Project Description</label>
+                <textarea id="description" required 
+                          placeholder="Describe your project in detail..."
+                >Build a responsive e-commerce website with user authentication, product catalog, shopping cart, payment integration, and admin dashboard</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="complexity">Project Complexity</label>
+                <select id="complexity" required>
+                    <option value="">Select complexity...</option>
+                    <option value="Simple">Simple - Basic features, quick delivery</option>
+                    <option value="Moderate">Moderate - Standard features, medium complexity</option>
+                    <option value="Complex" selected>Complex - Advanced features, integrations</option>
+                    <option value="Very Complex">Very Complex - Enterprise-level, cutting-edge tech</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="skillInput">Required Skills</label>
+                <div class="skills-input">
+                    <input type="text" id="skillInput" placeholder="Add a skill...">
+                    <button type="button" onclick="addSkill()">Add</button>
+                </div>
+                <div class="skills-list" id="skillsList"></div>
+                <input type="hidden" id="skills" value="">
+            </div>
+
+            <button type="submit" class="btn">Get Cost & Time Estimate</button>
+        </form>
+
+        <div id="projectResult"></div>
+        </div>
+
+        <!-- Freelancer Trust Score Section -->
+        <div id="freelancerSection" style="display: none;">
+            <h2>Check Freelancer Trust Score</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Evaluate freelancer reliability before hiring
+            </p>
+
+            <form id="trustScoreForm" onsubmit="checkFreelancer(event)">
+                <div class="form-group">
+                    <label for="freelancerEmail">Freelancer Email</label>
+                    <input type="email" id="freelancerEmail" required 
+                           placeholder="Enter freelancer's email address">
+                </div>
+
+                <div style="text-align: center; margin: 20px 0; color: #666;">
+                    <strong>OR enter metrics manually:</strong>
+                </div>
+
+                <div class="form-group">
+                    <label for="fRating">Average Rating (0-5)</label>
+                    <input type="number" id="fRating" min="0" max="5" step="0.1" 
+                           placeholder="e.g., 4.5" value="4.5">
+                </div>
+
+                <div class="form-group">
+                    <label for="fSuccessRate">Success Rate (0-1)</label>
+                    <input type="number" id="fSuccessRate" min="0" max="1" step="0.01" 
+                           placeholder="e.g., 0.92" value="0.92">
+                </div>
+
+                <div class="form-group">
+                    <label for="fSentimentScore">Review Sentiment Score (0-1)</label>
+                    <input type="number" id="fSentimentScore" min="0" max="1" step="0.01" 
+                           placeholder="e.g., 0.85" value="0.85">
+                </div>
+
+                <div class="form-group">
+                    <label for="fSkillsCount">Number of Skills</label>
+                    <input type="number" id="fSkillsCount" min="1" 
+                           placeholder="e.g., 7" value="7">
+                </div>
+
+                <div class="form-group">
+                    <label for="fCompletedJobs">Completed Jobs</label>
+                    <input type="number" id="fCompletedJobs" min="0" 
+                           placeholder="e.g., 45" value="45">
+                </div>
+
+                <button type="submit" class="btn">Check Trust Score</button>
+            </form>
+
+            <div id="freelancerResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const userType = sessionStorage.getItem('userType');
+        const username = sessionStorage.getItem('username');
+        
+        if (!userType || userType !== 'client') {
+            window.location.href = '/';
+        }
+
+        document.getElementById('username').textContent = username;
+        document.getElementById('avatar').textContent = username.charAt(0).toUpperCase();
+
+        // Tab switching
+        function switchTab(tab) {
+            if (tab === 'project') {
+                document.getElementById('projectSection').style.display = 'block';
+                document.getElementById('freelancerSection').style.display = 'none';
+                document.getElementById('projectTab').classList.add('active');
+                document.getElementById('freelancerTab').classList.remove('active');
+            } else {
+                document.getElementById('projectSection').style.display = 'none';
+                document.getElementById('freelancerSection').style.display = 'block';
+                document.getElementById('projectTab').classList.remove('active');
+                document.getElementById('freelancerTab').classList.add('active');
+            }
+        }
+
+        // Initialize with default skills
+        const defaultSkills = ['Python', 'Django', 'React', 'PostgreSQL'];
+        defaultSkills.forEach(skill => addSkillToList(skill));
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = '/';
+        }
+
+        function addSkill() {
+            const input = document.getElementById('skillInput');
+            const skill = input.value.trim();
+            
+            if (skill) {
+                addSkillToList(skill);
+                input.value = '';
+            }
+        }
+
+        function addSkillToList(skill) {
+            const skillsList = document.getElementById('skillsList');
+            
+            const tag = document.createElement('div');
+            tag.className = 'skill-tag';
+            tag.innerHTML = `
+                <span>${skill}</span>
+                <span class="remove" onclick="removeSkill(this, '${skill}')">×</span>
+            `;
+            
+            skillsList.appendChild(tag);
+            updateSkillsInput();
+        }
+
+        function removeSkill(element, skill) {
+            element.parentElement.remove();
+            updateSkillsInput();
+        }
+
+        function updateSkillsInput() {
+            const tags = document.querySelectorAll('.skill-tag span:first-child');
+            const skills = Array.from(tags).map(tag => tag.textContent);
+            document.getElementById('skills').value = JSON.stringify(skills);
+        }
+
+        // Allow Enter key to add skills
+        document.getElementById('skillInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addSkill();
+            }
+        });
+
+        async function checkFreelancer(event) {
+            event.preventDefault();
+            
+            const resultDiv = document.getElementById('freelancerResult');
+            resultDiv.innerHTML = '<div class="loading">🤖 Evaluating freelancer trust score...</div>';
+
+            const data = {
+                rating: parseFloat(document.getElementById('fRating').value),
+                success_rate: parseFloat(document.getElementById('fSuccessRate').value),
+                sentiment_score: parseFloat(document.getElementById('fSentimentScore').value),
+                skills_count: parseInt(document.getElementById('fSkillsCount').value),
+                completed_jobs: parseInt(document.getElementById('fCompletedJobs').value)
+            };
+
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/predict/trust-score', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to calculate trust score');
+                }
+
+                const result = await response.json();
+                displayFreelancerResult(result);
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function displayFreelancerResult(result) {
+            const trustScore = result.trust_score;
+            const interpretation = result.interpretation;
+            
+            let color = '#dc3545';
+            let recommendation = 'Not Recommended - High Risk';
+            if (trustScore >= 80) {
+                color = '#28a745';
+                recommendation = 'Highly Recommended - Excellent Choice';
+            } else if (trustScore >= 65) {
+                color = '#17a2b8';
+                recommendation = 'Recommended - Good Choice';
+            } else if (trustScore >= 50) {
+                color = '#ffc107';
+                recommendation = 'Proceed with Caution';
+            }
+
+            const resultHTML = `
+                <div class="result-card">
+                    <h3>Freelancer Trust Score</h3>
+                    <div class="score-display" style="color: ${color}">${trustScore}/100</div>
+                    
+                    <div class="score-bar">
+                        <div class="score-bar-fill" style="width: ${trustScore}%; background: ${color}">
+                            ${trustScore}%
+                        </div>
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>${interpretation}</strong>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 20px; background: ${trustScore >= 65 ? '#d4edda' : trustScore >= 50 ? '#fff3cd' : '#f8d7da'}; border-radius: 8px; border-left: 4px solid ${color};">
+                        <h4 style="margin-bottom: 10px; color: ${color};">${recommendation}</h4>
+                        <p style="margin: 0; color: #333;">
+                            ${trustScore >= 80 ? 'This freelancer has an excellent track record with high ratings and reliability.' : 
+                              trustScore >= 65 ? 'This freelancer shows good performance metrics and can be trusted.' :
+                              trustScore >= 50 ? 'Consider reviewing this freelancer\'s portfolio carefully before hiring.' :
+                              'This freelancer may have limited experience or mixed reviews.'}
+                        </p>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; color: #333;">Freelancer Metrics:</h4>
+                        <p>⭐ Rating: ${result.rating}/5</p>
+                        <p>✅ Success Rate: ${(result.success_rate * 100).toFixed(0)}%</p>
+                        <p>😊 Sentiment: ${(result.sentiment_score * 100).toFixed(0)}%</p>
+                        <p>🛠️ Skills: ${result.skills_count}</p>
+                        <p>📋 Completed Jobs: ${result.completed_jobs}</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('freelancerResult').innerHTML = resultHTML;
+        }
+
+        async function estimateCost(event) {
+            event.preventDefault();
+            
+            const resultDiv = document.getElementById('projectResult');
+            resultDiv.innerHTML = '<div class="loading">🤖 Analyzing your project and calculating estimates...</div>';
+
+            const skillsValue = document.getElementById('skills').value;
+            const skills = skillsValue ? JSON.parse(skillsValue) : [];
+
+            if (skills.length === 0) {
+                document.getElementById('projectResult').innerHTML = '<div class="error">❌ Please add at least one required skill</div>';
+                return;
+            }
+
+            const data = {
+                description: document.getElementById('description').value,
+                skills_required: skills,
+                complexity: document.getElementById('complexity').value
+            };
+
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/predict/cost-time', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to estimate cost and time');
+                }
+
+                const result = await response.json();
+                displayProjectResult(result);
+            } catch (error) {
+                document.getElementById('projectResult').innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function displayProjectResult(result) {
+            const resultHTML = `
+                <div class="result-card">
+                    <h3>📊 Project Estimation Results</h3>
+                    
+                    <div class="cost-range">
+                        <div class="cost-item">
+                            <div class="label">Minimum Cost</div>
+                            <div class="value">$${result.min_cost.toLocaleString()}</div>
+                        </div>
+                        <div class="cost-item">
+                            <div class="label">Estimated Cost</div>
+                            <div class="value" style="font-size: 28px;">$${result.estimated_cost.toLocaleString()}</div>
+                        </div>
+                        <div class="cost-item">
+                            <div class="label">Maximum Cost</div>
+                            <div class="value">$${result.max_cost.toLocaleString()}</div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin: 20px 0;">
+                        <div style="font-size: 48px; font-weight: bold; color: #667eea;">
+                            ⏱️ ${result.delivery_days} Days
+                        </div>
+                        <div style="color: #666;">Estimated Delivery Time</div>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; color: #333;">Project Details:</h4>
+                        <p><strong>Complexity:</strong> ${result.complexity}</p>
+                        <p><strong>Required Skills:</strong> ${result.skills_required.join(', ')}</p>
+                        <p><strong>Description:</strong> ${result.description.substring(0, 100)}...</p>
+                    </div>
+
+                    <div style="margin-top: 15px; padding: 15px; background: #e7f3ff; border-radius: 8px; border-left: 4px solid #0066cc;">
+                        <p style="margin: 0; color: #0066cc;">
+                            <strong>💡 Tip:</strong> These estimates are based on historical project data and AI analysis. 
+                            Actual costs may vary based on specific requirements and freelancer rates.
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('projectResult').innerHTML = resultHTML;
+        }
+    </script>
+</body>
+</html>

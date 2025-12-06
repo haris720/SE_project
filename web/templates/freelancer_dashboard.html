@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freelancer Dashboard - AI Evaluation System</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container dashboard">
+        <div class="header">
+            <h1>👨‍💻 Freelancer Dashboard</h1>
+            <div class="user-info">
+                <div class="avatar" id="avatar"></div>
+                <span id="username"></span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <h2>Check Your Trust Score</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Enter your performance metrics to calculate your reliability score
+        </p>
+
+        <form id="trustScoreForm" onsubmit="calculateTrustScore(event)">
+            <div class="form-group">
+                <label for="rating">Average Rating (0-5)</label>
+                <input type="number" id="rating" min="0" max="5" step="0.1" required 
+                       placeholder="e.g., 4.5" value="4.5">
+            </div>
+
+            <div class="form-group">
+                <label for="successRate">Success Rate (0-1)</label>
+                <input type="number" id="successRate" min="0" max="1" step="0.01" required 
+                       placeholder="e.g., 0.92" value="0.92">
+            </div>
+
+            <div class="form-group">
+                <label for="sentimentScore">Review Sentiment Score (0-1)</label>
+                <input type="number" id="sentimentScore" min="0" max="1" step="0.01" required 
+                       placeholder="e.g., 0.85" value="0.85">
+            </div>
+
+            <div class="form-group">
+                <label for="skillsCount">Number of Skills</label>
+                <input type="number" id="skillsCount" min="1" required 
+                       placeholder="e.g., 7" value="7">
+            </div>
+
+            <div class="form-group">
+                <label for="completedJobs">Completed Jobs</label>
+                <input type="number" id="completedJobs" min="0" required 
+                       placeholder="e.g., 45" value="45">
+            </div>
+
+            <button type="submit" class="btn">Calculate My Trust Score</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Check authentication
+        const userType = sessionStorage.getItem('userType');
+        const username = sessionStorage.getItem('username');
+        
+        if (!userType || userType !== 'freelancer') {
+            window.location.href = '/';
+        }
+
+        document.getElementById('username').textContent = username;
+        document.getElementById('avatar').textContent = username.charAt(0).toUpperCase();
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = '/';
+        }
+
+        async function calculateTrustScore(event) {
+            event.preventDefault();
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="loading">🤖 Calculating your trust score...</div>';
+
+            const data = {
+                rating: parseFloat(document.getElementById('rating').value),
+                success_rate: parseFloat(document.getElementById('successRate').value),
+                sentiment_score: parseFloat(document.getElementById('sentimentScore').value),
+                skills_count: parseInt(document.getElementById('skillsCount').value),
+                completed_jobs: parseInt(document.getElementById('completedJobs').value)
+            };
+
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/predict/trust-score', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to calculate trust score');
+                }
+
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function displayResult(result) {
+            const trustScore = result.trust_score;
+            const interpretation = result.interpretation;
+            
+            let color = '#dc3545';
+            if (trustScore >= 80) color = '#28a745';
+            else if (trustScore >= 65) color = '#17a2b8';
+            else if (trustScore >= 50) color = '#ffc107';
+
+            const resultHTML = `
+                <div class="result-card">
+                    <h3>Your Trust Score</h3>
+                    <div class="score-display" style="color: ${color}">${trustScore}/100</div>
+                    
+                    <div class="score-bar">
+                        <div class="score-bar-fill" style="width: ${trustScore}%; background: ${color}">
+                            ${trustScore}%
+                        </div>
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>${interpretation}</strong>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; color: #333;">Your Metrics:</h4>
+                        <p>⭐ Rating: ${result.rating}/5</p>
+                        <p>✅ Success Rate: ${(result.success_rate * 100).toFixed(0)}%</p>
+                        <p>😊 Sentiment: ${(result.sentiment_score * 100).toFixed(0)}%</p>
+                        <p>🛠️ Skills: ${result.skills_count}</p>
+                        <p>📋 Completed Jobs: ${result.completed_jobs}</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('result').innerHTML = resultHTML;
+        }
+    </script>
+</body>
+</html>

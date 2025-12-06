@@ -1,0 +1,190 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Freelancer</title>
+    <link rel="stylesheet" href="/static/style.css?v=4.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f7f8fa;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-navbar">
+        <div class="navbar-container">
+            <a href="/client-dashboard" class="navbar-logo">Freeio</a>
+            <div class="navbar-menu">
+                <a href="/client-dashboard">Dashboard</a>
+                <a href="#" onclick="goBack(); return false;">Back to Freelancers</a>
+            </div>
+            <div class="navbar-actions">
+                <span id="username" style="color: #fff; margin-right: 15px;"></span>
+                <button onclick="logout()" class="btn btn-secondary" style="padding: 8px 16px;">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div style="padding: 40px 20px; background: #f7f8fa; min-height: calc(100vh - 70px);">
+        <div style="max-width: 1100px; margin: 0 auto;">
+            <div class="content-card">
+                <h1 style="margin-top: 0; color: #222; margin-bottom: 10px;">💼 Request Freelancer</h1>
+                <p style="color: #666; margin-bottom: 30px;">
+                    Send a direct job request to this freelancer
+                </p>
+
+                <div style="background: #e6f7ed; border-left: 4px solid #1DBF73; padding: 20px; margin-bottom: 30px; border-radius: 8px;">
+                    <h3 style="margin-top: 0; color: #222; font-size: 16px; margin-bottom: 15px;">
+                        <span style="color: #1DBF73;">✓</span> Freelancer Information
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+                        <div>
+                            <div style="color: #666; font-size: 13px; margin-bottom: 8px;">Freelancer</div>
+                            <div style="color: #222; font-weight: 600; font-size: 16px;" id="freelancerName">Loading...</div>
+                        </div>
+                        <div>
+                            <div style="color: #666; font-size: 13px; margin-bottom: 8px;">Hourly Rate</div>
+                            <div id="freelancerRate" style="color: #1DBF73; font-weight: 700; font-size: 18px;"></div>
+                        </div>
+                        <div>
+                            <div style="color: #666; font-size: 13px; margin-bottom: 8px;">Skills</div>
+                            <div id="freelancerSkills" style="color: #222; font-weight: 600; font-size: 13px;"></div>
+                        </div>
+                        <div>
+                            <div style="color: #666; font-size: 13px; margin-bottom: 8px;">Completed Jobs</div>
+                            <div id="freelancerJobs" style="color: #222; font-weight: 600;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="submitRequest(event)">
+                    <div class="form-group">
+                        <label for="jobTitle">Job Title *</label>
+                        <input type="text" id="jobTitle" required placeholder="e.g., Build a Machine Learning Model">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobDescription">Job Description *</label>
+                        <textarea id="jobDescription" rows="8" required placeholder="Describe the project requirements, deliverables, and any specific details..."></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                        <div class="form-group">
+                            <label for="complexity">Project Complexity *</label>
+                            <select id="complexity" required>
+                                <option value="">Select complexity...</option>
+                                <option value="Simple">Simple - Basic tasks</option>
+                                <option value="Moderate">Moderate - Standard features</option>
+                                <option value="Complex">Complex - Advanced features</option>
+                                <option value="Very Complex">Very Complex - Enterprise level</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="estimatedDays">Timeline (days) *</label>
+                            <input type="number" id="estimatedDays" min="1" required placeholder="How many days for completion?">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Required Skills *</label>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="skillInput" placeholder="Enter a skill and click Add" style="flex: 1;">
+                            <button type="button" onclick="addSkill()" class="btn" style="width: auto; padding: 12px 24px; font-size: 14px; font-weight: 600; background: #1DBF73; color: white; border: none; cursor: pointer; border-radius: 8px;">➕ Add</button>
+                        </div>
+                        <div id="skillsList" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="estimatedCost">Your Budget ($) *</label>
+                        <input type="number" id="estimatedCost" min="1" step="0.01" required placeholder="Enter your budget">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="additionalNotes">Additional Notes (Optional)</label>
+                        <textarea id="additionalNotes" rows="4" placeholder="Any additional requirements, questions, or information..."></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; margin-top: 30px;">
+                        <button type="button" class="btn btn-secondary" onclick="goBack()">Cancel</button>
+                        <button type="submit" class="btn">Send Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const userId = sessionStorage.getItem('userId');
+        const userName = sessionStorage.getItem('username');
+        
+        if (userName) { document.getElementById('username').textContent = userName; }
+        function logout() { sessionStorage.clear(); window.location.href = '/'; }
+        if (!userId) { window.location.href = '/login'; }
+        const urlParams = new URLSearchParams(window.location.search);
+        const freelancerId = urlParams.get('freelancer_id');
+        if (!freelancerId) { alert('Freelancer ID not found'); window.location.href = '/client-dashboard'; }
+        let skills = [];
+        async function loadFreelancerDetails() {
+            try {
+                const response = await fetch(`http://localhost:3000/api/freelancer/profile/${freelancerId}`);
+                const result = await response.json();
+                if (result.success && result.profile) {
+                    const profile = result.profile;
+                    document.getElementById('freelancerName').textContent = profile.name || profile.user_id || 'Unknown';
+                    document.getElementById('freelancerRate').textContent = profile.hourly_rate ? `$${profile.hourly_rate}/hr` : 'N/A';
+                    document.getElementById('freelancerSkills').textContent = profile.skills ? profile.skills.join(', ') : 'No skills';
+                    document.getElementById('freelancerJobs').textContent = profile.completed_jobs || 0;
+                } else { alert('Failed to load freelancer details'); goBack(); }
+            } catch (error) { console.error('Error loading freelancer:', error); alert('Error loading freelancer details'); goBack(); }
+        }
+        function addSkill() {
+            const skillInput = document.getElementById('skillInput');
+            const skill = skillInput.value.trim();
+            console.log('Adding skill:', skill);
+            if (!skill) {
+                alert('Please enter a skill');
+                return;
+            }
+            if (skills.includes(skill)) {
+                alert('This skill is already added');
+                return;
+            }
+            skills.push(skill);
+            console.log('Skills array:', skills);
+            renderSkills();
+            skillInput.value = '';
+            skillInput.focus();
+        }
+        function removeSkill(skill) { skills = skills.filter(s => s !== skill); renderSkills(); }
+        function renderSkills() {
+            const skillsList = document.getElementById('skillsList');
+            skillsList.innerHTML = skills.map(skill => `<span class="skill-tag" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; background: #1DBF73; color: white; border-radius: 20px; font-size: 13px; margin: 4px;">${skill}<button type="button" onclick="removeSkill('${skill}')" style="background: none; border: none; color: white; cursor: pointer; font-size: 18px; padding: 0; line-height: 1;">×</button></span>`).join('');
+        }
+        async function submitRequest(event) {
+            event.preventDefault();
+            if (skills.length === 0) { alert('Please add at least one required skill'); return; }
+            const jobTitle = document.getElementById('jobTitle').value;
+            const jobDescription = document.getElementById('jobDescription').value;
+            const complexity = document.getElementById('complexity').value;
+            const estimatedCost = document.getElementById('estimatedCost').value;
+            const estimatedDays = document.getElementById('estimatedDays').value;
+            const additionalNotes = document.getElementById('additionalNotes').value;
+            try {
+                const response = await fetch('http://localhost:3000/api/jobs/direct-request', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-User-ID': userId },
+                    body: JSON.stringify({ freelancer_id: freelancerId, title: jobTitle, description: jobDescription, complexity: complexity, skills_required: skills, estimated_cost: parseFloat(estimatedCost), estimated_days: parseInt(estimatedDays), additional_notes: additionalNotes })
+                });
+                const result = await response.json();
+                if (result.success) { alert('✅ Job request sent successfully! The freelancer will be notified.'); window.location.href = '/client-dashboard'; } else { alert('❌ ' + result.message); }
+            } catch (error) { console.error('Error sending request:', error); alert('Error sending job request. Please try again.'); }
+        }
+        function goBack() { window.location.href = '/client-dashboard'; }
+        document.getElementById('skillInput').addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } });
+        loadFreelancerDetails();
+    </script>
+</body>
+</html>

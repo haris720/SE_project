@@ -273,6 +273,85 @@ async def get_trust_score(user_id: str):
     return JSONResponse(content={'success': True, 'data': score_data})
 
 
+@web_app.get("/api/freelancer/stats/{user_id}")
+async def get_freelancer_stats(user_id: str):
+    """Get dashboard statistics for freelancer"""
+    try:
+        # Get all jobs where freelancer applied (check applications array)
+        all_jobs = list(job_db.collection.find({}))
+        applications_count = 0
+        for job in all_jobs:
+            if 'applications' in job:
+                for app in job['applications']:
+                    if app.get('freelancer_id') == user_id:
+                        applications_count += 1
+        
+        # Count completed jobs
+        completed_jobs = list(job_db.collection.find({
+            "assigned_to": user_id,
+            "status": "completed"
+        }))
+        
+        # Count in-progress jobs (assigned but not completed)
+        in_progress_jobs = list(job_db.collection.find({
+            "assigned_to": user_id,
+            "status": {"$in": ["assigned", "in_progress"]}
+        }))
+        
+        # Get freelancer profile for reviews count
+        profile = freelancer_profile_db.get_profile(user_id)
+        reviews_count = 0
+        if profile:
+            reviews_count = profile.get('total_reviews', 0)
+        
+        stats = {
+            'posted_services': applications_count,  # Applications submitted
+            'completed_services': len(completed_jobs),
+            'in_queue_services': len(in_progress_jobs),
+            'reviews': reviews_count
+        }
+        
+        return JSONResponse(content={'success': True, 'stats': stats})
+    except Exception as e:
+        print(f"Error in get_freelancer_stats: {e}")
+        return JSONResponse(content={'success': False, 'message': str(e)}, status_code=500)
+
+
+@web_app.get("/api/client/stats/{user_id}")
+async def get_client_stats(user_id: str):
+    """Get dashboard statistics for client"""
+    try:
+        # Get all jobs posted by client
+        all_jobs = list(job_db.collection.find({"client_id": user_id}))
+        
+        # Count completed projects
+        completed_jobs = list(job_db.collection.find({
+            "client_id": user_id,
+            "status": "completed"
+        }))
+        
+        # Count proposals received on all jobs (from applications array)
+        proposals_count = 0
+        for job in all_jobs:
+            if 'applications' in job:
+                proposals_count += len(job['applications'])
+        
+        # Reviews count (number of completed jobs with ratings)
+        reviews_count = len(completed_jobs)
+        
+        stats = {
+            'posted_projects': len(all_jobs),
+            'completed_projects': len(completed_jobs),
+            'proposals': proposals_count,
+            'reviews': reviews_count
+        }
+        
+        return JSONResponse(content={'success': True, 'stats': stats})
+    except Exception as e:
+        print(f"Error in get_client_stats: {e}")
+        return JSONResponse(content={'success': False, 'message': str(e)}, status_code=500)
+
+
 # Job Endpoints
 @web_app.post("/api/jobs/estimate")
 async def estimate_job_cost(data: JobRequest, request: Request):

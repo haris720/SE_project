@@ -287,6 +287,32 @@
 
         // Show dashboard section by default on page load
         switchTab('dashboard');
+        
+        // Load dashboard statistics on page load
+        loadDashboardStats();
+        
+        function loadDashboardStats() {
+            if (!userId) return;
+            
+            fetch(`/api/client/stats/${userId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.stats) {
+                        const stats = data.stats;
+                        // Update dashboard numbers
+                        const statCards = document.querySelectorAll('.stat-card .number');
+                        if (statCards.length >= 4) {
+                            statCards[0].textContent = stats.posted_projects || 0;
+                            statCards[1].textContent = stats.completed_projects || 0;
+                            statCards[2].textContent = stats.proposals || 0;
+                            statCards[3].textContent = stats.reviews || 0;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading dashboard stats:', error);
+                });
+        }
 
         function addSkill() {
             const input = document.getElementById('skillInput');

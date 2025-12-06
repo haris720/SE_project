@@ -15,38 +15,72 @@ import uvicorn
 import sys
 import os
 from bson import ObjectId
+import httpx
+import asyncio
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from web.auth import AuthService
 from database.models import FreelancerProfile, Job
-from services.trust_score_ai import TrustScoreAI
-from services.cost_time_service import CostTimeEstimationService
 
-# Create FastAPI app for web interface
-web_app = FastAPI(title="AI Freelancer Evaluation - Web Interface")
+# Microservice URLs
+TRUST_SCORE_SERVICE_URL = "http://localhost:8001"
+COST_TIME_SERVICE_URL = "http://localhost:8002"
 
-# Initialize authentication service
+# Create FastAPI app for web interface (API Gateway)
+web_app = FastAPI(title="AI Freelancer Evaluation - API Gateway")
+
+# Initialize authentication service and database models
 auth_service = AuthService()
 freelancer_profile_db = FreelancerProfile()
 job_db = Job()
-trust_score_ai = TrustScoreAI()
-cost_service = CostTimeEstimationService()
 
-# Load AI models on startup
-try:
-    cost_service.load_models()
-    trust_score_ai.load_model()
-    print("✅ AI models loaded successfully")
-except Exception as e:
-    print(f"⚠️  Warning: Could not load AI models: {e}")
-    print("   Training models now...")
+# HTTP client for microservice communication
+http_client = httpx.AsyncClient(timeout=30.0)
+
+# Check microservices health on startup - using lifespan
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Check if microservices are running on startup"""
+    print("\n" + "=" * 70)
+    print("🔍 Checking microservices status...")
+    print("=" * 70)
+    
+    # Check Trust Score Service
     try:
-        trust_score_ai.train_model(n_samples=2000)
-        print("✅ Trust Score AI model trained successfully")
-    except Exception as train_error:
-        print(f"❌ Error training model: {train_error}")
+        response = await http_client.get(f"{TRUST_SCORE_SERVICE_URL}/health")
+        if response.status_code == 200:
+            print("✅ Trust Score Service: Online (port 8001)")
+        else:
+            print("⚠️  Trust Score Service: Unhealthy")
+    except Exception as e:
+        print(f"❌ Trust Score Service: Offline - {e}")
+        print("   Please start: py -3.11 trust_score_service.py")
+    
+    # Check Cost/Time Service
+    try:
+        response = await http_client.get(f"{COST_TIME_SERVICE_URL}/health")
+        if response.status_code == 200:
+            print("✅ Cost/Time Estimation Service: Online (port 8002)")
+        else:
+            print("⚠️  Cost/Time Estimation Service: Unhealthy")
+    except Exception as e:
+        print(f"❌ Cost/Time Estimation Service: Offline - {e}")
+        print("   Please start: py -3.11 cost_time_service_api.py")
+    
+    print("=" * 70 + "\n")
+    
+    yield
+    
+    # Cleanup on shutdown
+    await http_client.aclose()
+    print("Shutting down API Gateway...")
+
+# Create FastAPI app for web interface (API Gateway) with lifespan
+web_app = FastAPI(title="AI Freelancer Evaluation - API Gateway", lifespan=lifespan)
 
 # Pydantic models for request validation
 class SignupRequest(BaseModel):
@@ -223,14 +257,7 @@ async def create_or_update_profile(data: ProfileRequest, request: Request):
     if not user_id:
         return JSONResponse(content={'success': False, 'message': 'User ID required'}, status_code=400)
     
-    # VALIDATE SKILLS - Reject invalid/gibberish skills
-    if data.skills:
-        skills_validation = cost_service.validate_skills(data.skills)
-        if not skills_validation['valid']:
-            return JSONResponse(content={
-                'success': False, 
-                'message': skills_validation['message']
-            }, status_code=400)
+    # Note: Skills validation done on frontend
     
     existing = freelancer_profile_db.get_profile(user_id)
     if existing:
@@ -246,13 +273,14 @@ async def create_or_update_profile(data: ProfileRequest, request: Request):
         message = 'Profile created'
     
     if success:
-        # Retrain Trust Score AI model with updated profile data
-        print("🔄 Retraining Trust Score AI with updated profile...")
+        # Trigger retraining of Trust Score microservice (async, non-blocking)
+        print("🔄 Triggering Trust Score AI retraining via microservice...")
         try:
-            trust_score_ai.train_model(n_samples=2000)
-            print("✅ Trust Score AI retrained successfully")
+            # Fire and forget - don't wait for response
+            asyncio.create_task(http_client.post(f"{TRUST_SCORE_SERVICE_URL}/api/train"))
+            print("✅ Retraining request sent to microservice")
         except Exception as e:
-            print(f"⚠️ Trust Score AI retraining failed: {e}")
+            print(f"⚠️ Trust Score AI retraining request failed: {e}")
     
     return JSONResponse(content={'success': success, 'message': message})
 
@@ -268,9 +296,25 @@ async def get_profile(user_id: str):
 
 @web_app.get("/api/freelancer/trust-score/{user_id}")
 async def get_trust_score(user_id: str):
-    """Get calculated trust score for freelancer"""
-    score_data = trust_score_ai.predict_trust_score(user_id)
-    return JSONResponse(content={'success': True, 'data': score_data})
+    """Get calculated trust score for freelancer from Trust Score microservice"""
+    try:
+        response = await http_client.post(
+            f"{TRUST_SCORE_SERVICE_URL}/api/predict",
+            json={"user_id": user_id}
+        )
+        if response.status_code == 200:
+            data = response.json()
+            return JSONResponse(content={'success': True, 'data': data})
+        else:
+            return JSONResponse(content={
+                'success': False, 
+                'message': 'Trust Score service error'
+            }, status_code=response.status_code)
+    except Exception as e:
+        return JSONResponse(content={
+            'success': False, 
+            'message': f'Trust Score service unavailable: {str(e)}'
+        }, status_code=503)
 
 
 @web_app.get("/api/freelancer/stats/{user_id}")
@@ -355,42 +399,50 @@ async def get_client_stats(user_id: str):
 # Job Endpoints
 @web_app.post("/api/jobs/estimate")
 async def estimate_job_cost(data: JobRequest, request: Request):
-    """Get AI estimation for job cost and timeline without posting"""
+    """Get AI estimation for job cost and timeline from Cost/Time microservice"""
     client_id = request.headers.get('X-User-ID')
     if not client_id:
         return JSONResponse(content={'success': False, 'message': 'User ID required'}, status_code=400)
     
     try:
-        # Check if models are loaded
-        if cost_service.cost_model is None or cost_service.time_model is None:
+        # Call Cost/Time Estimation microservice
+        response = await http_client.post(
+            f"{COST_TIME_SERVICE_URL}/api/estimate",
+            json={
+                "description": data.description,
+                "skills_required": data.skills_required,
+                "complexity": data.complexity
+            }
+        )
+        
+        if response.status_code == 200:
+            prediction = response.json()
+            
+            # Check if validation failed
+            if not prediction.get('valid'):
+                return JSONResponse(content={
+                    'success': False,
+                    'message': prediction.get('message', 'Invalid description')
+                }, status_code=400)
+            
             return JSONResponse(content={
-                'success': False, 
-                'message': 'AI models not loaded. Please contact administrator.'
-            }, status_code=503)
-        
-        project_data = {
-            'description': data.description,
-            'skills_required': data.skills_required,
-            'complexity': data.complexity
-        }
-        prediction = cost_service.predict_cost_and_time(project_data)
-        
-        # Check if validation failed (description was gibberish/invalid)
-        if prediction.get('error'):
+                'success': True,
+                'estimated_cost': (prediction['estimated_cost_min'] + prediction['estimated_cost_max']) / 2,
+                'delivery_days': prediction['estimated_days'],
+                'min_cost': prediction['estimated_cost_min'],
+                'max_cost': prediction['estimated_cost_max']
+            })
+        else:
             return JSONResponse(content={
                 'success': False,
-                'message': prediction['message']
-            }, status_code=400)
-        
-        return JSONResponse(content={
-            'success': True,
-            'estimated_cost': prediction['estimated_cost'],
-            'delivery_days': prediction['delivery_days'],
-            'min_cost': prediction['min_cost'],
-            'max_cost': prediction['max_cost']
-        })
+                'message': 'Cost/Time estimation service error'
+            }, status_code=response.status_code)
+            
     except Exception as e:
-        return JSONResponse(content={'success': False, 'message': f'Estimation failed: {str(e)}'}, status_code=500)
+        return JSONResponse(content={
+            'success': False, 
+            'message': f'Cost/Time service unavailable: {str(e)}'
+        }, status_code=503)
 
 
 @web_app.post("/api/jobs/manual")
@@ -415,33 +467,42 @@ async def create_job_manual(data: JobRequest, request: Request):
 
 @web_app.post("/api/jobs")
 async def create_job(data: JobRequest, request: Request):
-    """Client creates a new job posting with AI estimation"""
+    """Client creates a new job posting with AI estimation from microservice"""
     client_id = request.headers.get('X-User-ID')
     if not client_id:
         return JSONResponse(content={'success': False, 'message': 'User ID required'}, status_code=400)
     
-    # Get AI cost estimate
+    # Get AI cost estimate from microservice
     try:
-        project_data = {
-            'description': data.description,
-            'skills_required': data.skills_required,
-            'complexity': data.complexity
-        }
-        prediction = cost_service.predict_cost_and_time(project_data)
+        response = await http_client.post(
+            f"{COST_TIME_SERVICE_URL}/api/estimate",
+            json={
+                "description": data.description,
+                "skills_required": data.skills_required,
+                "complexity": data.complexity
+            }
+        )
         
-        # Check if validation failed (description was gibberish/invalid)
-        if prediction.get('error'):
-            return JSONResponse(content={
-                'success': False,
-                'message': prediction['message']
-            }, status_code=400)
-        
-        data_dict = data.model_dump()
-        data_dict['estimated_cost'] = prediction['estimated_cost']
-        data_dict['estimated_days'] = prediction['delivery_days']
-        data_dict['budget_min'] = prediction['min_cost']
-        data_dict['budget_max'] = prediction['max_cost']
-    except:
+        if response.status_code == 200:
+            prediction = response.json()
+            
+            # Check if validation failed
+            if not prediction.get('valid'):
+                return JSONResponse(content={
+                    'success': False,
+                    'message': prediction.get('message', 'Invalid description')
+                }, status_code=400)
+            
+            data_dict = data.model_dump()
+            data_dict['estimated_cost'] = (prediction['estimated_cost_min'] + prediction['estimated_cost_max']) / 2
+            data_dict['estimated_days'] = prediction['estimated_days']
+            data_dict['budget_min'] = prediction['estimated_cost_min']
+            data_dict['budget_max'] = prediction['estimated_cost_max']
+        else:
+            # Fallback if microservice unavailable
+            data_dict = data.model_dump()
+    except Exception as e:
+        print(f"Cost estimation service error: {e}, using manual values")
         data_dict = data.model_dump()
     
     job = job_db.create_job(client_id, data_dict)
@@ -626,13 +687,14 @@ async def complete_job_with_review(job_id: str, request: Request):
                 {'$inc': {'total_earnings': final_price}}
             )
         
-        # Retrain Trust Score AI model with new review data
-        print("🔄 Retraining Trust Score AI with new client review...")
+        # Trigger retraining of Trust Score microservice with new review data
+        print("🔄 Triggering Trust Score AI retraining via microservice...")
         try:
-            trust_score_ai.train_model(n_samples=2000)
-            print("✅ Trust Score AI retrained successfully")
+            # Fire and forget - don't wait for response
+            asyncio.create_task(http_client.post(f"{TRUST_SCORE_SERVICE_URL}/api/train"))
+            print("✅ Retraining request sent to Trust Score microservice")
         except Exception as e:
-            print(f"⚠️ Trust Score AI retraining failed: {e}")
+            print(f"⚠️ Trust Score AI retraining request failed: {e}")
         
         return JSONResponse(content={
             'success': True, 
@@ -659,7 +721,19 @@ async def search_freelancers(skill: str = None):
         freelancers_with_scores = []
         for profile in profiles:
             user_id = profile['user_id']
-            trust_data = trust_score_ai.predict_trust_score(user_id)
+            
+            # Get trust score from microservice
+            trust_score = 0
+            try:
+                response = await http_client.post(
+                    f"{TRUST_SCORE_SERVICE_URL}/api/predict",
+                    json={"user_id": user_id}
+                )
+                if response.status_code == 200:
+                    trust_data = response.json()
+                    trust_score = trust_data.get('trust_score', 0)
+            except:
+                trust_score = 0
             
             freelancers_with_scores.append({
                 'user_id': user_id,
@@ -668,8 +742,8 @@ async def search_freelancers(skill: str = None):
                 'hourly_rate': profile.get('hourly_rate', 0),
                 'completed_jobs': profile.get('completed_jobs', 0),
                 'average_rating': profile.get('average_rating', 0),
-                'trust_score': trust_data.get('trust_score', 0),
-                'success_rate': trust_data.get('success_rate', 0),
+                'trust_score': trust_score,
+                'success_rate': profile.get('success_rate', 0),
                 'sentiment_score': trust_data.get('sentiment_score', 0)
             })
         

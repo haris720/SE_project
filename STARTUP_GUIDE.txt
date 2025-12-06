@@ -1,0 +1,192 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║    MICROSERVICES STARTUP - STEP BY STEP INSTRUCTIONS                ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  STEP 1: STOP ALL EXISTING SERVICES                                 │
+└──────────────────────────────────────────────────────────────────────┘
+
+Open PowerShell and run:
+    Stop-Process -Name python -Force
+
+OR close all command windows showing Python services
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  STEP 2: START ALL SERVICES                                         │
+└──────────────────────────────────────────────────────────────────────┘
+
+Double-click this file:
+    
+    ╔═══════════════════════╗
+    ║   START_HERE.bat      ║
+    ╚═══════════════════════╝
+
+This will automatically:
+  ✓ Check Python 3.11 is installed
+  ✓ Install httpx if missing
+  ✓ Start Trust Score Service (Port 8001)
+  ✓ Wait 7 seconds
+  ✓ Start Cost/Time Service (Port 8002)
+  ✓ Wait 7 seconds
+  ✓ Start Web Application (Port 3000)
+  ✓ Open your browser
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  STEP 3: VERIFY SERVICES ARE RUNNING                                │
+└──────────────────────────────────────────────────────────────────────┘
+
+You should see 3 separate command windows:
+
+┌─────────────────────────────────┐
+│ Trust Score AI Service          │
+│ Port 8001                       │
+│                                 │
+│ ✅ Trust Score AI model loaded  │
+│ INFO: Uvicorn running on        │
+│       http://0.0.0.0:8001       │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│ Cost Time Estimation Service    │
+│ Port 8002                       │
+│                                 │
+│ ✅ Models loaded successfully   │
+│ INFO: Uvicorn running on        │
+│       http://0.0.0.0:8002       │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│ Web Application                 │
+│ Port 3000                       │
+│                                 │
+│ ✅ Trust Score Service: Online  │
+│ ✅ Cost/Time Service: Online    │
+│ INFO: Uvicorn running on        │
+│       http://0.0.0.0:3000       │
+└─────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  STEP 4: WAIT FOR INITIALIZATION                                    │
+└──────────────────────────────────────────────────────────────────────┘
+
+⏱️  Wait 15-20 seconds total for all services to initialize
+
+Watch each window for the message:
+   "Uvicorn running on http://0.0.0.0:XXXX"
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  STEP 5: ACCESS THE APPLICATION                                     │
+└──────────────────────────────────────────────────────────────────────┘
+
+Open your browser and go to:
+
+    ╔═════════════════════════════╗
+    ║  http://localhost:3000      ║
+    ╚═════════════════════════════╝
+
+OR the browser should open automatically
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  STEP 6: TEST THE FEATURES                                          │
+└──────────────────────────────────────────────────────────────────────┘
+
+1. Sign up as a Client or Freelancer
+2. Create a profile
+3. Click "Get AI Estimation" button
+4. Enter project details
+5. Click "Get AI Estimation"
+
+✅ Should see cost and time prediction (NO errors!)
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  TROUBLESHOOTING                                                     │
+└──────────────────────────────────────────────────────────────────────┘
+
+❌ Error: "Cost/Time estimation service error"
+
+   CAUSE: Web app started before microservices
+   
+   FIX:
+   1. Close all 3 command windows
+   2. Wait 5 seconds
+   3. Run START_HERE.bat again
+   4. Wait full 20 seconds before testing
+
+
+❌ Error: "ModuleNotFoundError: No module named 'httpx'"
+
+   FIX:
+   py -3.11 -m pip install httpx
+
+
+❌ Error: "Port already in use"
+
+   FIX:
+   Stop-Process -Name python -Force
+   Then run START_HERE.bat again
+
+
+❌ Error: One service window closes immediately
+
+   CAUSE: Error in that service
+   
+   FIX:
+   1. Open PowerShell
+   2. cd D:\SE-project
+   3. Run the service manually to see error:
+      py -3.11 trust_score_service.py
+      py -3.11 cost_time_service_api.py
+      py -3.11 web_app.py
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  HOW TO STOP SERVICES                                               │
+└──────────────────────────────────────────────────────────────────────┘
+
+Option 1: Close all 3 command windows
+
+Option 2: PowerShell command
+   Stop-Process -Name python -Force
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  QUICK TEST - Are services running?                                 │
+└──────────────────────────────────────────────────────────────────────┘
+
+Open PowerShell and run:
+
+Test Trust Score Service:
+   curl http://localhost:8001/health
+
+Test Cost/Time Service:
+   curl http://localhost:8002/health
+
+Test Web Application:
+   curl http://localhost:3000
+
+
+All should return HTTP 200 with JSON/HTML response
+
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                         IMPORTANT NOTES                              ║
+╠══════════════════════════════════════════════════════════════════════╣
+║                                                                      ║
+║  ⚠️  START ORDER MATTERS:                                            ║
+║     1. Trust Score Service FIRST                                    ║
+║     2. Cost/Time Service SECOND                                     ║
+║     3. Web Application LAST                                         ║
+║                                                                      ║
+║  ⏱️  WAIT TIME: 15-20 seconds total for all services                 ║
+║                                                                      ║
+║  🔄  IF ERRORS: Stop all services and restart in correct order      ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
